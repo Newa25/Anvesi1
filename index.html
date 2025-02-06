@@ -19,7 +19,10 @@
     </div>
     
     <div class="container mt-5 d-none" id="mainApp">
-        <h1 class="text-center mb-4">Anvesi Software</h1>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Anvesi Software</h1>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
         <h3 class="text-center" id="greeting"></h3>
         <h3 class="text-center" id="currentDate"></h3>
         
@@ -136,6 +139,13 @@
                 li.textContent = item;
                 historyList.appendChild(li);
             });
+        }
+
+        function logout() {
+            localStorage.removeItem("authenticated");
+            localStorage.removeItem("username");
+            document.getElementById("mainApp").classList.add("d-none");
+            document.getElementById("authContainer").classList.remove("d-none");
         }
     </script>
 </body>
