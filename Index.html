@@ -22,6 +22,9 @@
                 <input type="time" id="clockOutTime" class="form-control w-50 d-inline" placeholder="Clock Out Time">
                 <button class="btn btn-danger m-2" onclick="clockOut()">Clock Out</button>
             </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-primary" onclick="saveEntries()">Save</button>
+            </div>
         </div>
         
         <div class="card p-4 shadow-lg mt-4">
@@ -61,9 +64,27 @@
             }
         }
 
+        function saveEntries() {
+            const clockInTime = document.getElementById("clockInTime").value;
+            const clockOutTime = document.getElementById("clockOutTime").value;
+            
+            if (clockInTime) {
+                saveHistory("Clock In: " + clockInTime);
+            }
+            if (clockOutTime) {
+                saveHistory("Clock Out: " + clockOutTime);
+            }
+            
+            if (clockInTime || clockOutTime) {
+                alert("Entries saved successfully!");
+            } else {
+                alert("Please enter at least one time entry.");
+            }
+        }
+
         function saveHistory(entry) {
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            history.push(entry);
+            history.unshift(entry); // Add new entry to the beginning
             localStorage.setItem("history", JSON.stringify(history));
             loadHistory();
         }
@@ -82,3 +103,4 @@
     </script>
 </body>
 </html>
+
