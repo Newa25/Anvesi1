@@ -3,24 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anvesi1 Software</title>
+    <title>Newa25 Project</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
     <div class="container mt-5" id="authContainer">
-        <h1 class="text-center mb-4">Anvesi Software</h1>
+        <h1 class="text-center mb-4">Newa25 Project</h1>
         <div class="card p-4 shadow-lg text-center">
-            <h3>Login</h3>
-            <input type="text" id="username" class="form-control my-2" placeholder="Enter username">
-            <input type="password" id="password" class="form-control my-2" placeholder="Enter password">
-            <button class="btn btn-primary mt-2" onclick="authenticate()">Login</button>
+            <h3>Login or Sign Up</h3>
+            <button class="btn btn-dark mt-2" onclick="authenticateWithGithub()">Login with GitHub</button>
+            <hr>
+            <input type="email" id="email" class="form-control mt-2" placeholder="Email">
+            <input type="password" id="password" class="form-control mt-2" placeholder="Password">
+            <button class="btn btn-primary mt-2" onclick="signUp()">Sign Up</button>
+            <button class="btn btn-secondary mt-2" onclick="signIn()">Sign In</button>
         </div>
     </div>
     
     <div class="container mt-5 d-none" id="mainApp">
         <div class="d-flex justify-content-between align-items-center">
-            <h1>Anvesi Software</h1>
+            <h1>Newa25 Project</h1>
             <button class="btn btn-danger" onclick="logout()">Logout</button>
         </div>
         <h3 class="text-center" id="greeting"></h3>
@@ -29,15 +33,12 @@
         <div class="card p-4 shadow-lg">
             <h3 class="text-center">Clock In/Out</h3>
             <div class="text-center">
-                <input type="time" id="clockInTime" class="form-control w-50 d-inline" placeholder="Clock In Time">
+                <input type="time" id="clockInTime" class="form-control w-50 d-inline">
                 <button class="btn btn-success m-2" onclick="clockIn()">Clock In</button>
             </div>
             <div class="text-center mt-3">
-                <input type="time" id="clockOutTime" class="form-control w-50 d-inline" placeholder="Clock Out Time">
+                <input type="time" id="clockOutTime" class="form-control w-50 d-inline">
                 <button class="btn btn-danger m-2" onclick="clockOut()">Clock Out</button>
-            </div>
-            <div class="text-center mt-3">
-                <button class="btn btn-primary" onclick="saveEntries()">Save</button>
             </div>
         </div>
         
@@ -47,107 +48,117 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            if (localStorage.getItem("authenticated") === "true") {
-                showMainApp();
-            }
-            displayCurrentDate();
-        });
+        const supabaseUrl = "YOUR_SUPABASE_URL";
+        const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        function authenticate() {
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            if (username && password === "password") {
-                localStorage.setItem("authenticated", "true");
-                localStorage.setItem("username", username);
-                showMainApp();
-            } else {
-                alert("Invalid credentials! Try again.");
+        async function authenticateWithGithub() {
+            const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+            if (error) {
+                alert("Login failed! " + error.message);
             }
         }
+
+        async function signUp() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                alert("Sign-up failed! " + error.message);
+            } else {
+                alert("Sign-up successful! Check your email for verification.");
+            }
+        }
+
+        async function signIn() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert("Sign-in failed! " + error.message);
+            }
+        }
+
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                localStorage.setItem("user", JSON.stringify(session.user));
+                showMainApp();
+            }
+        });
 
         function showMainApp() {
             document.getElementById("authContainer").classList.add("d-none");
             document.getElementById("mainApp").classList.remove("d-none");
-            loadHistory();
             displayGreeting();
+            displayCurrentDate();
+            loadHistory();
         }
 
         function displayGreeting() {
-            const username = localStorage.getItem("username") || "User";
-            document.getElementById("greeting").textContent = `Welcome, ${username}!`;
+            const user = JSON.parse(localStorage.getItem("user"));
+            document.getElementById("greeting").textContent = `Welcome, ${user?.user_metadata?.full_name || "User"}!`;
         }
 
         function displayCurrentDate() {
-            const today = new Date();
-            const formattedDate = today.toDateString();
-            document.getElementById("currentDate").textContent = formattedDate;
+            const today = new Date().toDateString();
+            document.getElementById("currentDate").textContent = today;
         }
 
-        function clockIn() {
+        async function clockIn() {
             const time = document.getElementById("clockInTime").value;
             if (time) {
-                saveHistory("Clock In: " + time);
+                await saveHistory("Clock In", time);
             } else {
                 alert("Please enter a valid time.");
             }
         }
 
-        function clockOut() {
+        async function clockOut() {
             const time = document.getElementById("clockOutTime").value;
             if (time) {
-                saveHistory("Clock Out: " + time);
+                await saveHistory("Clock Out", time);
             } else {
                 alert("Please enter a valid time.");
             }
         }
 
-        function saveEntries() {
-            const clockInTime = document.getElementById("clockInTime").value;
-            const clockOutTime = document.getElementById("clockOutTime").value;
-            
-            if (clockInTime) {
-                saveHistory("Clock In: " + clockInTime);
-            }
-            if (clockOutTime) {
-                saveHistory("Clock Out: " + clockOutTime);
-            }
-            
-            if (clockInTime || clockOutTime) {
-                alert("Entries saved successfully!");
+        async function saveHistory(type, time) {
+            const user = JSON.parse(localStorage.getItem("user"));
+            const { error } = await supabase.from("history").insert([
+                { user_email: user.email, type, time }
+            ]);
+            if (error) {
+                alert("Error saving history: " + error.message);
             } else {
-                alert("Please enter at least one time entry.");
+                loadHistory();
             }
         }
 
-        function saveHistory(entry) {
-            let history = JSON.parse(localStorage.getItem("history")) || [];
-            history.unshift(entry); // Add new entry to the beginning
-            localStorage.setItem("history", JSON.stringify(history));
-            loadHistory();
+        async function loadHistory() {
+            const user = JSON.parse(localStorage.getItem("user"));
+            const { data, error } = await supabase.from("history").select("type, time").eq("user_email", user.email).order("id", { ascending: false });
+            
+            if (!error) {
+                const historyList = document.getElementById("history");
+                historyList.innerHTML = "";
+                data.forEach(entry => {
+                    let li = document.createElement("li");
+                    li.className = "list-group-item";
+                    li.textContent = `${entry.type}: ${entry.time}`;
+                    historyList.appendChild(li);
+                });
+            }
         }
 
-        function loadHistory() {
-            let history = JSON.parse(localStorage.getItem("history")) || [];
-            const historyList = document.getElementById("history");
-            historyList.innerHTML = "";
-            history.forEach(item => {
-                let li = document.createElement("li");
-                li.className = "list-group-item";
-                li.textContent = item;
-                historyList.appendChild(li);
-            });
-        }
-
-        function logout() {
-            localStorage.removeItem("authenticated");
-            localStorage.removeItem("username");
+        async function logout() {
+            await supabase.auth.signOut();
+            localStorage.removeItem("user");
             document.getElementById("mainApp").classList.add("d-none");
             document.getElementById("authContainer").classList.remove("d-none");
         }
     </script>
 </body>
 </html>
+
 
